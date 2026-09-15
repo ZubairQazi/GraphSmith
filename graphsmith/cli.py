@@ -16,20 +16,22 @@ def main(argv=None):
         command.add_argument('config', type=Path)
         if name == 'research':
             command.add_argument('--output', type=Path, default=Path('runs'))
-    for name in ('resume', 'report', 'finalize'):
+            command.add_argument('--evaluator', help='Private local evaluator URL (macOS sealed campaigns)')
+    for name in ('resume', 'report', 'freeze', 'finalize'):
         sub.add_parser(name).add_argument('run', type=Path)
     args = parser.parse_args(argv)
     try:
-        if args.command == 'finalize':
-            raise ValueError('Final-test evaluation is disabled until a separately permissioned evaluator is implemented. This version produces development evidence only.')
-        if args.command == 'resume':
+        if args.command in {'freeze', 'finalize'}:
+            from .finalization import freeze, finalize
+            print((freeze if args.command == 'freeze' else finalize)(args.run))
+        elif args.command == 'resume':
             print(execute(args.run))
         elif args.command == 'report':
             print(report(args.run))
         else:
             config = Config.parse(read(args.config))
             if args.command == 'research':
-                root = create(config, args.output)
+                root = create(config, args.output, args.evaluator)
                 print(f'Campaign: {root}', flush=True)
                 print(execute(root))
             else:

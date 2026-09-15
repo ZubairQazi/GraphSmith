@@ -54,29 +54,47 @@ def locked(root):
             fcntl.flock(stream, fcntl.LOCK_UN)
 
 
-def create(config, output):
+def create(config, output, evaluator_url=None):
     config.validate()
-    bundle = generate(config)
+    if evaluator_url:
+        from .finalization import service_call
+        from .isolation import command
+        command([sys.executable, '-V'], Path(output))  # Fail closed on unsupported platforms.
+        bundle = service_call(evaluator_url, 'initialize', asdict(config))
+        validate(bundle)
+    else:
+        bundle = generate(config)
     root = Path(output).resolve() / (datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ') + '-' + uuid.uuid4().hex[:8])
     root.mkdir(parents=True)
     write(root / 'config.json', asdict(config))
     write(root / 'dataset.json', bundle)
     write(root / 'profile.json', profile(bundle))
-    write(root / 'hypothesis.json', {
-        "id": "ego-path-001", "origin": "prewritten engineering hypothesis; no LLM",
-        "statement": "An explicit ego feature path improves pair macro-F1 over a GCN encoder on this misleading-neighborhood synthetic graph.",
-        "mechanism": "Access to unaggregated endpoint features preserves signal diluted by background neighbors.",
-        "intervention": "gcn → ego_gcn, keeping normalized aggregation and the pair decoder architecture fixed",
-        "competing_explanation": "The ego encoder has more parameters; capacity is a confound.",
-        "falsification": "A non-positive paired mean validation difference fails this directional prediction on this graph.",
-        "next_experiment": "Match encoder capacity and vary neighbor agreement across independent graph draws.",
-    })
+    from .planning import OfflinePlanner, OpenAIPlanner, validate_plan
+    planning = {'status': 'reserved', 'llm_calls': 1 if config.planner == 'openai' else 0}
+    write(root / 'planning.json', planning)
+    context = {'profile': profile(bundle), 'allowed_intervention': 'gcn → ego_gcn'}
+    write(root / 'planner-input.json', context)
+    try:
+        provider = OpenAIPlanner(config.planner_model) if config.planner == 'openai' else OfflinePlanner()
+        plan, receipt = provider.propose(context)
+        validate_plan(plan)
+        write(root / 'hypothesis.json', plan)
+        planning.update(status='completed', receipt=receipt, hypothesis_hash=digest(plan))
+    except (ValueError, OSError) as exc:
+        planning.update(status='failed', error=str(exc))
+        write(root / 'planning.json', planning)
+        raise ValueError(f'Planning failed; attempt retained at {root}: {exc}') from None
+    write(root / 'planning.json', planning)
+    if evaluator_url:
+        write(root / 'service.json', {'url': evaluator_url, 'boundary': 'private Docker volume; sandboxed research workers'})
     env = environment()
     write(root / 'environment.json', env)
     write(root / 'provenance.json', {
         **validate(bundle), "config_hash": digest(asdict(config)), "code_hash": code_hash(),
         "environment_hash": digest(env), "hypothesis_hash": digest(read(root / 'hypothesis.json')),
         "created": now(), "evaluation": "development_validation_only",
+        "evidence_version": 2,
+        "service_hash": digest(read(root / 'service.json')) if evaluator_url else None,
     })
     jobs = [{"id": f'{model}-{seed}', "model": model, "seed": seed, "status": "pending", "charged_seconds": 0}
             for seed in config.seeds for model in config.models]
@@ -96,6 +114,9 @@ def verify(root, check_runtime=False):
         raise ValueError('Frozen hypothesis changed')
     if check_runtime and (code_hash() != provenance['code_hash'] or digest(environment()) != provenance['environment_hash']):
         raise ValueError('Code or environment changed; start a new campaign')
+    if provenance.get('service_hash') is not None:
+        if digest(read(root / 'service.json')) != provenance['service_hash']:
+            raise ValueError('Evaluator connection changed')
     return bundle
 
 
@@ -108,7 +129,12 @@ def collect(root, job, bundle):
         raise ValueError('Result identity mismatch')
     if evaluate(expected, predictions) != result['metrics']:
         raise ValueError('Result metrics do not match saved predictions')
-    evidence_hash = digest({"result": result, "predictions": predictions})
+    from .finalization import artifact_hash
+    checkpoint = path / ('prior.json' if job['model'] == 'prior' else 'checkpoint.pt')
+    recorded = {"result": result, "predictions": predictions}
+    if read(root / 'provenance.json').get('evidence_version', 1) >= 2:
+        recorded['checkpoint_hash'] = artifact_hash(checkpoint)
+    evidence_hash = digest(recorded)
     if job.get('evidence_hash') and job['evidence_hash'] != evidence_hash:
         raise ValueError('Recorded evidence changed')
     return result, evidence_hash
@@ -120,6 +146,8 @@ def execute(root):
         bundle = verify(root, check_runtime=True)
         config = Config.parse(read(root / 'config.json'))
         state = read(root / 'state.json')
+        if state['status'] in {'frozen', 'final_submitting', 'final_evaluated'}:
+            raise ValueError('Search is closed after method freeze; use finalize or report')
         # A lost orchestrator never causes the same reservation to be billed/launched again.
         for job in state['jobs']:
             if job['status'] == 'running':
@@ -149,8 +177,14 @@ def execute(root):
             interrupted = False
             try:
                 with (job_dir / 'worker.log').open('w') as log:
-                    process = subprocess.Popen([sys.executable, '-m', 'graphsmith.worker', str(root), job['id'], str(timeout)],
+                    arguments = [sys.executable, '-m', 'graphsmith.worker', str(root), job['id'], str(timeout)]
+                    if (root / 'service.json').exists():
+                        from .isolation import command
+                        arguments = command(arguments, root)
+                    from .isolation import worker_environment
+                    process = subprocess.Popen(arguments,
                                                stdout=log, stderr=subprocess.STDOUT, start_new_session=True,
+                                               env=worker_environment(root),
                                                cwd=Path(__file__).resolve().parent.parent)
                     return_code = process.wait(timeout=timeout)
                 if return_code == -signal.SIGALRM:
@@ -214,6 +248,15 @@ def report(root):
                 "paired_ego_minus_gcn": paired, "mean_difference": delta, "assessment": verdict,
                 "charged_worker_seconds": sum(j['charged_seconds'] for j in state['jobs']),
                 "attempts": sum(j['status'] != 'pending' for j in state['jobs'])}
+    from .planning import critique
+    hypothesis = read(root / 'hypothesis.json')
+    if 'minimum_effect' in hypothesis:
+        assessment = critique(hypothesis, paired, read(root / 'config.json')['seeds'])
+        write(root / 'critique.json', assessment)
+        evidence['critique'] = assessment
+    final_inference = state.get('final_inference', {})
+    evidence['charged_worker_seconds'] += final_inference.get('charged_seconds', 0)
+    evidence['attempts'] += int(bool(final_inference))
     write(root / 'summary.json', evidence)
     lines = ['# GraphSmith experiment report', '', '**Exploratory development results — no final test or independent confirmation.**', '',
              f"Status: `{state['status']}`. Dataset: `{read(root / 'provenance.json')['dataset_hash']}`.", '',
@@ -246,5 +289,19 @@ def report(root):
               'Use the pinned environment and unchanged source recorded in [provenance](provenance.json).', '',
               '```sh', f'python -m graphsmith research "{root / "config.json"}"', '```', '',
               '[Frozen configuration](config.json) · [Dataset](dataset.json) · [Profile](profile.json) · [Machine-readable summary](summary.json) · [Event log](events.jsonl)', '']
+    if 'critique' in evidence:
+        lines += ['## Structured critique', '',
+                  f"**{evidence['critique']['verdict']}**: {evidence['critique']['reason']}", '',
+                  '[Frozen hypothesis](hypothesis.json) · [Critique evidence](critique.json) · [Planner receipt](planning.json)', '']
+    if state['status'] == 'final_evaluated':
+        final = read(root / 'final-result.json')
+        if digest(final) != state.get('final_result_hash'):
+            raise ValueError('Final evaluation record changed')
+        lines[2] = '**Development findings are exploratory. A separately held-out final score is reported below.**'
+        lines += ['## Frozen final-test evaluation', '',
+                  f"Selected ensemble: `{read(root / 'selection.json')['model']}`.", '',
+                  f"Held-out macro-F1: **{final['metrics']['macro_f1']:.4f}** over {final['metrics']['count']} pairs.", '',
+                  'This campaign is closed. One test set on one synthetic graph does not establish broader generalization.', '',
+                  '[Frozen selection](selection.json) · [Final predictions](test-predictions.json) · [Evaluator receipt](final-result.json)', '']
     (root / 'report.md').write_text('\n'.join(lines))
     return root / 'report.md'

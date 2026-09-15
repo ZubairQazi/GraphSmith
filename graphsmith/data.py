@@ -33,6 +33,9 @@ class Config:
     topology_visibility: str = "independent_background_transductive"
     split_policy: str = "pair_held_out"
     primary_metric: str = "macro_f1"
+    planner: str = "offline"
+    planner_model: str = ""
+    max_llm_calls: int = 0
 
     @classmethod
     def parse(cls, raw):
@@ -71,6 +74,12 @@ class Config:
             raise ValueError("learning_rate must be in (0, 1]")
         if not self.seeds or any(type(s) is not int for s in self.seeds) or len(set(self.seeds)) != len(self.seeds):
             raise ValueError("seeds must contain distinct integers")
+        if self.planner not in {"offline", "openai"}:
+            raise ValueError("planner must be offline or openai")
+        if type(self.max_llm_calls) is not int or not 0 <= self.max_llm_calls <= 10:
+            raise ValueError("max_llm_calls must be an integer in [0, 10]")
+        if self.planner == "openai" and (not isinstance(self.planner_model, str) or not self.planner_model or self.max_llm_calls < 1):
+            raise ValueError("OpenAI planning requires planner_model and at least one declared LLM call")
         allowed = {"prior", "mlp", "gcn", "sage", "ego_gcn"}
         if not self.models or not set(self.models) <= allowed or len(set(self.models)) != len(self.models):
             raise ValueError("models must be distinct supported model names")
@@ -159,6 +168,17 @@ def validate(bundle):
         if q["split"] not in classes or type(q["target"]) is not int or q["target"] not in (0, 1):
             raise ValueError("Only binary train/validation targets are allowed")
         classes[q["split"]].add(q["target"])
+        seen_ids.add(q["id"])
+        seen_pairs.add(pair)
+    for q in bundle.get("test_queries", []):
+        if set(q) != {"id", "source", "destination"}:
+            raise ValueError("Test query schema forbids labels and extra fields")
+        a, b = q["source"], q["destination"]
+        if any(type(v) is not int or not 0 <= v < n for v in (a, b)) or a == b:
+            raise ValueError("Test query endpoints are invalid")
+        pair = tuple(sorted((a, b)))
+        if q["id"] in seen_ids or pair in seen_pairs:
+            raise ValueError("Test query overlaps development queries")
         seen_ids.add(q["id"])
         seen_pairs.add(pair)
     if any(labels != {0, 1} for labels in classes.values()):

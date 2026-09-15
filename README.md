@@ -1,6 +1,6 @@
 # GraphSmith
 
-An auditable experiment engine for graph-learning research. The first working slice runs **synthetic unordered pair classification** on a CPU and produces traceable development evidence. The full [proposal](docs/proposal.md) is the roadmap, not a list of completed capabilities.
+An auditable experiment engine for graph-learning research. It runs **synthetic unordered pair classification** on a CPU, freezes structured hypotheses, and produces traceable development evidence plus optional isolated final-test scores. The full [proposal](docs/proposal.md) is the roadmap, not a list of completed capabilities.
 
 ## Quick start
 
@@ -29,7 +29,7 @@ python3 -m venv .venv
 .venv/bin/python -m pip install --no-build-isolation --no-deps -e .
 ```
 
-The lock captures the tested Python 3.14 macOS ARM environment; other platforms are not yet verified. The module CLI works directly from the repository even without an editable installation.
+The lock captures the tested Python 3.14 environment. The development engine is tested on macOS ARM and Linux; sealed workers currently require macOS. The module CLI works directly from the repository even without an editable installation.
 
 ## Implemented
 
@@ -37,12 +37,27 @@ The lock captures the tested Python 3.14 macOS ARM environment; other platforms 
 - A manifest declaring topology visibility, feature/target provenance, split rules, and fixed metric/threshold policy.
 - Unique unordered pairs, explicit query IDs, separate background topology, and train/validation partitions.
 - Strict shape, endpoint, duplicate/reverse-pair, label, and finite-value validation.
-- Baselines and one prewritten hypothesis/ablation. No LLM account is needed.
+- Structured hypothesis planning through an offline provider or optional OpenAI Responses API adapter. No LLM account is needed for offline runs.
+- Evidence-backed critique with supported, rejected, and inconclusive exploratory outcomes.
 - CPU training with early stopping, selected checkpoints, prediction files, training curves, and validation-access counts.
 - Single-worker orchestration with per-job process timeouts, job-count and cumulative worker-time caps.
 - Atomic job reservations and state files, an append-only event log, and a campaign process lock.
 - Source/config/data/environment fingerprints; resume rejects changed inputs or runtime.
 - A Markdown report and JSON summary, recalculated from predictions and checked against recorded evidence hashes.
+
+## Optional sealed campaign
+
+Start the local Docker evaluator using [the isolation guide](docs/isolated-evaluation.md), then:
+
+```sh
+python -m graphsmith research examples/sealed-pairs.json --evaluator http://127.0.0.1:8765
+python -m graphsmith freeze runs/RUN_ID
+python -m graphsmith finalize runs/RUN_ID
+```
+
+Labels stay in the evaluator's private volume. Research workers have no networking or access to that volume. The selected ensemble and predictions are frozen before the one-shot score is released. The 26-job example reserves one job for final inference. Read the guide for the trusted-owner boundary and platform limits.
+
+For live LLM planning, see [provider setup and critic policy](docs/planning.md).
 
 ## Scientific scope
 
@@ -52,7 +67,7 @@ All permitted node features and background edges are visible under an explicit t
 
 The shared decoder uses endpoint embedding sum, absolute difference, and product. The GCN ablation concatenates raw node features with normalized GCN aggregation before encoding; it adds parameters, which the report explicitly identifies as a confound. GraphSAGE uses raw features plus mean neighbor features. Encoders are deliberately small and dense; they are not tuned benchmark implementations.
 
-Validation selects checkpoints and is reused for comparisons. All outputs are **exploratory**, even with five seeds. Five seeds on one graph/split do not provide independent confirmation or population uncertainty. No novelty claim is made.
+Validation selects checkpoints and is reused for comparisons. Development comparisons and hypothesis verdicts are **exploratory**, even with five seeds. Optional finalization reports one separately held-out ensemble score. Five seeds on one graph/split do not provide independent confirmation or population uncertainty. No novelty claim is made. Sealed campaigns use 60/20/20 splits and a private service seed, as described in the isolation guide.
 
 ## Failure and budget semantics
 
@@ -62,6 +77,6 @@ A worker has its own POSIX alarm as well as the orchestrator timeout, so it rema
 
 ## Deliberately unfinished
 
-`finalize` refuses execution. A protected final-test service, node task adapter, real-data import, context features, independent confirmation stage, hypothesis planner/critic, generated-code sandbox, SQLite retrieval, and broader graph tasks are future work. Separating files alone is not a security boundary. This slice does not claim test isolation or full M1/MVP completion.
+The node task adapter, real-data import, context features, independent multi-graph confirmation, adaptive replanning, generated-code sandbox, cross-campaign evidence retrieval, and broader graph tasks are future work. Sealed worker isolation currently supports macOS only. This release does not complete the full M1/MVP.
 
 See [next milestones](docs/roadmap.md).
