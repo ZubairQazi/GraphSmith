@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools==84.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "graphsmith"
+version = "0.1.0.dev0"
+description = "Auditable graph-learning experiments"
+requires-python = ">=3.11"
+dependencies = ["numpy==2.4.3", "torch==2.10.0"]
+
+[project.scripts]
+graphsmith = "graphsmith.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["graphsmith*"]

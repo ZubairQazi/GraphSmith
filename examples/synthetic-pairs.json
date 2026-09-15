@@ -1,0 +1,22 @@
+{
+  "name": "misleading-neighborhood-pairs",
+  "nodes": 80,
+  "features": 8,
+  "pairs": 600,
+  "data_seed": 41,
+  "neighbor_agreement": 0.15,
+  "edge_probability": 0.12,
+  "label_noise": 0.05,
+  "seeds": [11, 23, 37, 53, 71],
+  "models": ["prior", "mlp", "gcn", "sage", "ego_gcn"],
+  "hidden": 16,
+  "epochs": 100,
+  "patience": 15,
+  "learning_rate": 0.01,
+  "max_jobs": 25,
+  "job_timeout_seconds": 60,
+  "campaign_seconds": 600,
+  "topology_visibility": "independent_background_transductive",
+  "split_policy": "pair_held_out",
+  "primary_metric": "macro_f1"
+}
