@@ -289,6 +289,14 @@ def report(root):
               'Use the pinned environment and unchanged source recorded in [provenance](provenance.json).', '',
               '```sh', f'python -m graphsmith research "{root / "config.json"}"', '```', '',
               '[Frozen configuration](config.json) · [Dataset](dataset.json) · [Profile](profile.json) · [Machine-readable summary](summary.json) · [Event log](events.jsonl)', '']
+    if (root / 'service.json').exists():
+        start = lines.index('```sh')
+        lines[start:start + 3] = [
+            'Sealed data uses a private generator seed. Starting research from the config alone creates different data.', '',
+            'The saved public dataset and checkpoints preserve the development evidence. Automated retraining from that snapshot is not yet implemented.', '',
+            'To regenerate this report without accessing test labels:', '',
+            '```sh', f'python -m graphsmith report "{root}"', '```',
+        ]
     if 'critique' in evidence:
         lines += ['## Structured critique', '',
                   f"**{evidence['critique']['verdict']}**: {evidence['critique']['reason']}", '',
