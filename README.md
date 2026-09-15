@@ -37,7 +37,7 @@ The lock captures the tested Python 3.14 environment. The development engine is 
 - A manifest declaring topology visibility, feature/target provenance, split rules, and fixed metric/threshold policy.
 - Unique unordered pairs, explicit query IDs, separate background topology, and train/validation partitions.
 - Strict shape, endpoint, duplicate/reverse-pair, label, and finite-value validation.
-- Structured hypothesis planning through an offline provider or optional OpenAI Responses API adapter. No LLM account is needed for offline runs.
+- Structured hypothesis planning through an offline provider, ChatGPT-authenticated Codex CLI, or OpenAI Responses API adapter. No LLM account is needed for offline runs.
 - Evidence-backed critique with supported, rejected, and inconclusive exploratory outcomes.
 - CPU training with early stopping, selected checkpoints, prediction files, training curves, and validation-access counts.
 - Single-worker orchestration with per-job process timeouts, job-count and cumulative worker-time caps.
@@ -57,7 +57,13 @@ python -m graphsmith finalize runs/RUN_ID
 
 Labels stay in the evaluator's private volume. Research workers have no networking or access to that volume. The selected ensemble and predictions are frozen before the one-shot score is released. The 26-job example reserves one job for final inference. Read the guide for the trusted-owner boundary and platform limits.
 
-For live LLM planning, see [provider setup and critic policy](docs/planning.md).
+## Plan with your Codex sign-in
+
+```sh
+python -m graphsmith research examples/codex-pairs.json
+```
+
+This uses your existing ChatGPT-authenticated Codex CLI, with no API key. See [provider setup and critic policy](docs/planning.md) for details.
 
 ## Scientific scope
 

@@ -74,12 +74,14 @@ class Config:
             raise ValueError("learning_rate must be in (0, 1]")
         if not self.seeds or any(type(s) is not int for s in self.seeds) or len(set(self.seeds)) != len(self.seeds):
             raise ValueError("seeds must contain distinct integers")
-        if self.planner not in {"offline", "openai"}:
-            raise ValueError("planner must be offline or openai")
+        if self.planner not in {"offline", "openai", "codex"}:
+            raise ValueError("planner must be offline, codex, or openai")
         if type(self.max_llm_calls) is not int or not 0 <= self.max_llm_calls <= 10:
             raise ValueError("max_llm_calls must be an integer in [0, 10]")
         if self.planner == "openai" and (not isinstance(self.planner_model, str) or not self.planner_model or self.max_llm_calls < 1):
             raise ValueError("OpenAI planning requires planner_model and at least one declared LLM call")
+        if self.planner == "codex" and (not isinstance(self.planner_model, str) or self.max_llm_calls < 1):
+            raise ValueError("Codex planning requires a string planner_model and at least one declared planning turn")
         allowed = {"prior", "mlp", "gcn", "sage", "ego_gcn"}
         if not self.models or not set(self.models) <= allowed or len(set(self.models)) != len(self.models):
             raise ValueError("models must be distinct supported model names")

@@ -36,7 +36,7 @@ Before exposure, the evaluator freezes the dataset, code, model, seed list, chec
 ## Trust boundary and current limits
 
 - The local OS user, Docker administrator, source code, and orchestration CLI are trusted setup/control components. They can administer the evaluator; this is not protection against a malicious machine owner.
-- The LLM receives a training-scope profile through a tool-free structured-output API call. It cannot execute code, modify evaluation rules, or read files.
+- The LLM receives a training-scope profile through a tool-free structured-output API call or a constrained Codex CLI turn. The Codex adapter disables command, browser, app/plugin, image, and multi-agent capabilities and rejects unexpected tool events. Provider output cannot modify evaluation rules.
 - The only intervention is preimplemented. Arbitrary generated code and a general-purpose coding agent are not supported inside this boundary.
 - The HTTP service binds to localhost on the host. It is a single-user development service without multi-user authentication or TLS; do not expose it on a public interface.
 - The worker sandbox is macOS-specific and fails closed elsewhere. Linux CI tests service semantics and the deterministic engine; macOS CI additionally exercises filesystem and network denial.

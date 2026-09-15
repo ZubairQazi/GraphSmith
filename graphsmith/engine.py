@@ -69,13 +69,13 @@ def create(config, output, evaluator_url=None):
     write(root / 'config.json', asdict(config))
     write(root / 'dataset.json', bundle)
     write(root / 'profile.json', profile(bundle))
-    from .planning import OfflinePlanner, OpenAIPlanner, validate_plan
-    planning = {'status': 'reserved', 'llm_calls': 1 if config.planner == 'openai' else 0}
+    from .planning import OfflinePlanner, OpenAIPlanner, CodexPlanner, validate_plan
+    planning = {'status': 'reserved', 'llm_calls': 1 if config.planner in {'openai', 'codex'} else 0}
     write(root / 'planning.json', planning)
     context = {'profile': profile(bundle), 'allowed_intervention': 'gcn → ego_gcn'}
     write(root / 'planner-input.json', context)
     try:
-        provider = OpenAIPlanner(config.planner_model) if config.planner == 'openai' else OfflinePlanner()
+        provider = {'openai': OpenAIPlanner, 'codex': CodexPlanner}[config.planner](config.planner_model) if config.planner != 'offline' else OfflinePlanner()
         plan, receipt = provider.propose(context)
         validate_plan(plan)
         write(root / 'hypothesis.json', plan)
