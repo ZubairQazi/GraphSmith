@@ -39,8 +39,10 @@ Update the project synthesis after each branch; a local success is not a global
 conclusion. Existing campaign commands remain available for reproduction; this
 review-first workflow is a documented requirement, not a runtime launch gate.
 
-This is evidence infrastructure plus an assistant-authored synthesis. The native
-synthetic planner has not been upgraded into an autonomous dpsyn research planner.
+The [bounded dpsyn research loop](research-loop.md) now consumes this evidence
+plus verified current results for autonomous planning and critique. It chooses
+from preimplemented controls with explicit token, call, depth and compute limits.
+The original synthetic planner remains separate.
 
 ---
 
@@ -191,8 +193,9 @@ observed difference; additional matched controls and independent confirmation
 are needed for attribution.
 
 Native synthetic `research`, `resume` and `finalize` do not accept these output
-directories. Automated hypothesis planning and adaptive follow-up remain future
-work; this backend executes an explicitly frozen, user-reviewable comparison.
+directories. This campaign backend executes an explicitly frozen comparison. For bounded
+automatic planning and follow-up through exptrack, use the separate
+[research loop](research-loop.md).
 
 ## Feature failures and selective-synergy feasibility
 

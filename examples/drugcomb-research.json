@@ -1,0 +1,38 @@
+{
+  "review": "/home/zqazi/Drug_Protein_Heterophily/results/graphsmith/project-review-61426057",
+  "feature_audit": "/home/zqazi/Drug_Protein_Heterophily/results/graphsmith/feature-audit-61462265",
+  "project_notes": [
+    "/home/zqazi/Drug_Protein_Heterophily/notes/graphsmith-project-review.md"
+  ],
+  "prerequisites": [
+    "/home/zqazi/Drug_Protein_Heterophily/results/graphsmith/benchmark-20260918-r2"
+  ],
+  "provider": {
+    "name": "codex",
+    "model": "",
+    "timeout_seconds": 180
+  },
+  "limits": {
+    "cycles": 2,
+    "model_calls": 4,
+    "tokens": 50000,
+    "fits": 336,
+    "gpu_seconds": 302400,
+    "concurrency": 3,
+    "fit_seconds": 900,
+    "epochs": 400
+  },
+  "runtime": {
+    "training_repo": "/home/zqazi/Multigraph-GNN-Training",
+    "training_python": "/home/zqazi/miniforge3/envs/gnn_het/bin/python",
+    "tracker_repo": "/home/zqazi/exptrack",
+    "tracker_python": "/home/zqazi/miniforge3/bin/python",
+    "data_root": "/nfs/turbo/coe-dkoutra/zqazi/drugprot_data",
+    "account": "dkoutra0",
+    "partition": "gpu"
+  },
+  "recipes": [
+    "pd_relationships",
+    "protein_semantics"
+  ]
+}
