@@ -35,4 +35,16 @@ class ProviderTests(unittest.TestCase):
         self.assertIn('command_execution',receipt['disallowed_tool_events']);self.assertIsNone(value)
         self.assertEqual(receipt['usage']['output_tokens'],2)
 
+    def test_failed_turn_rejected_even_with_completed_usage(self):
+        def runner(args,**kw):
+            if args[1:3]==['login','status']:return SimpleNamespace(returncode=0,stdout='ChatGPT',stderr='')
+            Path(args[args.index('--output-last-message')+1]).write_text('{"decision":"stop"}')
+            kw['stdout'].write(json.dumps({'type':'turn.completed','usage':{'input_tokens':1,'output_tokens':2}})+'\n')
+            kw['stdout'].write(json.dumps({'type':'turn.failed'})+'\n')
+            return SimpleNamespace(returncode=0)
+        with patch('shutil.which',return_value='/fake/codex'):
+            value,receipt=CodexResearchProvider(runner=runner).call('planning',{}, {})
+        self.assertFalse(receipt['completed'])
+        self.assertEqual(receipt['usage']['output_tokens'],2)
+
 if __name__=='__main__':unittest.main()

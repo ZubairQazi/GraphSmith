@@ -125,8 +125,8 @@ def worker(args):
     for b in ('mu','sd','keep','train_cells'):
         if result['feature_contract']['cell_scaling'][b]!=job['expected_cell'][b]:raise ValueError('Cell scaling mismatch')
     if result['split']['split_hash']!=job['config']['expected_split_hash']:raise ValueError('Split hash mismatch')
-    for item in plan['sources']:
-        if fingerprint(item['path'])!=item:raise ValueError('Source changed during run')
+    for item in plan['inputs']:
+        if fingerprint(item['path'])!=item:raise ValueError('Input/source changed during run')
     write(args.output/'contract_verified.json',{'status':'PASS','job':job['id']})
 
 

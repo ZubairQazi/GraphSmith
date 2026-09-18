@@ -61,17 +61,19 @@ class CodexResearchProvider:
             if len(raw)>2_000_000:
                 raise ValueError('Oversized Codex events; usage uncertain')
             usage, thread, completed, disallowed = None, None, False, []
+            failed = False
             for line in raw.splitlines():
                 entry=json.loads(line)
                 if entry.get('type')=='thread.started': thread=entry.get('thread_id')
                 if entry.get('type')=='turn.completed':
                     if completed: raise ValueError('Multiple Codex turns in one reservation')
                     completed,usage=True,entry.get('usage')
+                if entry.get('type') in ('turn.failed','error'):failed=True
                 kind=entry.get('item',{}).get('type')
                 if kind and kind not in ('agent_message','reasoning','error'):disallowed.append(kind)
             # Return metering even for rejected output. Controller charges usage before validation.
             receipt={'provider':'codex','model':self.model or 'codex-default','thread_id':thread,
-                     'usage':usage,'returncode':result.returncode,'completed':completed,
+                     'usage':usage,'returncode':result.returncode,'completed':completed and not failed,
                      'disallowed_tool_events':disallowed,
                      'budget_unit':'CLI turns; internal requests/retries may vary; tokens are post-call usage'}
             output=root/'response.json'
