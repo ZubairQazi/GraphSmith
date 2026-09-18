@@ -1,0 +1,72 @@
+{
+  "arms": [
+    {
+      "config": {
+        "rewire": [
+          "pd"
+        ]
+      },
+      "name": "rewired_pd"
+    },
+    {
+      "config": {
+        "rewire": []
+      },
+      "name": "real_pd"
+    }
+  ],
+  "common": {
+    "cell_cond": "feat",
+    "cell_feat": "ccle_tissue",
+    "cell_transform": "std",
+    "channels": [
+      "dd",
+      "ppd"
+    ],
+    "conv": "sage",
+    "conv_root": true,
+    "dd_attr": "none",
+    "dd_key": "pair",
+    "dd_sign": "pos",
+    "drop_edges": [],
+    "drug_feat": "atompair_full",
+    "feat_dim": 256,
+    "feat_transform": "std",
+    "folds": "extmap",
+    "fuse": "mean",
+    "graph": "dp_drugs_pd_drugbank_bindingdb_kikd",
+    "max_epochs": 400,
+    "min_epochs": 20,
+    "missing_feat": "random",
+    "molecular_graphs": "",
+    "molecular_mode": "none",
+    "node_feat_mode": "real_std",
+    "num_folds": 4,
+    "pair_pool": "sym",
+    "patience": 40,
+    "prot_feat": "esm2_full",
+    "prot_feat_mode": "real_std",
+    "setup": "B3",
+    "side_blocks": [],
+    "side_mode": "film"
+  },
+  "evidence_pointer": "/rewiring_checks",
+  "evidence_profile": "/nfs/turbo/coe-dkoutra/zqazi/multigraph_gnn_results/graphsmith/alignment-61300814/contract.json",
+  "fold_indices": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "hypothesis": "Real protein-drug associations improve B3 validation partner ranking over degree-preserving rewired associations in the same DD+PPD architecture.",
+  "job_timeout_seconds": 300,
+  "max_jobs": 24,
+  "minimum_effect": 0.01,
+  "name": "aligned-pd-rewiring-control",
+  "seeds": [
+    0,
+    1,
+    2
+  ],
+  "split_contract": "/nfs/turbo/coe-dkoutra/zqazi/multigraph_gnn_results/graphsmith/alignment-61300814/contract.json"
+}

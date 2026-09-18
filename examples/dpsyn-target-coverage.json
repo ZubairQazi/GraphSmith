@@ -1,0 +1,56 @@
+{
+  "name": "target-coverage-validation-pilot",
+  "hypothesis": "Adding PPD to DD may improve validation partner ranking, with gains depending on recorded target coverage. This pilot measures the pattern without attributing causality.",
+  "minimum_effect": 0.01,
+  "evidence_profile": "/nfs/turbo/coe-dkoutra/zqazi/multigraph_gnn_results/graphsmith/profile-61286554/profile.json",
+  "evidence_pointer": "/splits/B3_f0_s0/partitions/train/rows_by_pd_covered_endpoints",
+  "common": {
+    "setup": "B3",
+    "folds": "extmap",
+    "num_folds": 4,
+    "graph": "dp_drugs_pd_drugbank_bindingdb_kikd",
+    "drug_feat": "atompair_full",
+    "prot_feat": "esm2_full",
+    "node_feat_mode": "real_std",
+    "prot_feat_mode": "real_std",
+    "feat_transform": "std",
+    "conv": "sage",
+    "fuse": "mean",
+    "dd_key": "pair",
+    "dd_attr": "none",
+    "dd_sign": "pos",
+    "pair_pool": "sym",
+    "cell_feat": "ccle_tissue",
+    "cell_transform": "std",
+    "max_epochs": 400,
+    "patience": 40,
+    "min_epochs": 20
+  },
+  "arms": [
+    {
+      "name": "dd",
+      "config": {
+        "channels": [
+          "dd"
+        ]
+      }
+    },
+    {
+      "name": "dd_ppd",
+      "config": {
+        "channels": [
+          "dd",
+          "ppd"
+        ]
+      }
+    }
+  ],
+  "seeds": [
+    0
+  ],
+  "fold_indices": [
+    0
+  ],
+  "max_jobs": 2,
+  "job_timeout_seconds": 1800
+}

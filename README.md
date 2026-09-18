@@ -2,6 +2,8 @@
 
 An auditable experiment engine for graph-learning research. It runs **synthetic unordered pair classification** on a CPU, freezes structured hypotheses, and produces traceable development evidence plus optional isolated final-test scores. The full [proposal](docs/proposal.md) is the roadmap, not a list of completed capabilities.
 
+For real drug-synergy research, begin with the [whole-project evidence review](docs/dpsyn.md), which joins historical result families with data audits and pipeline context before a new campaign.
+
 ## Quick start
 
 From `~/Documents/GraphSmith`:
@@ -81,8 +83,22 @@ Each worker is reserved in durable state before launching. Failed, timed-out, an
 
 A worker has its own POSIX alarm as well as the orchestrator timeout, so it remains time-bounded if the orchestrator is killed. The campaign seconds limit covers cumulative launched-worker wall time (including startup), not report generation or idle time. Termination/scheduling overhead may slightly exceed a boundary. Memory limits and peak-memory measurement are not implemented. Event logs provide an operational trail; atomic state files are the authoritative job ledger. Local files are not tamper-proof.
 
+## Real drug-synergy data
+
+The `dpsyn-profile` adapter profiles actual prepared drug/protein data through an
+existing dpsyn checkout, audits split coverage and joins, inventories historical
+results, and emits evidence-linked candidate experiments. It runs in the dpsyn
+environment on a compute node. See [setup and scope](docs/dpsyn.md). This is a
+reconnaissance workflow, separate from synthetic `research` campaigns. The
+`dpsyn-campaign` backend additionally executes frozen two-arm validation-only
+comparisons and exports subgroup evidence. `dpsyn-diagnose` audits feature
+failures and selective-synergy feasibility from real measurements and validation
+predictions. New campaigns use standardization; whitening is reserved for
+historical dpsyn reproduction. Adaptive hypothesis planning remains
+unimplemented.
+
 ## Deliberately unfinished
 
-The node task adapter, real-data import, context features, independent multi-graph confirmation, adaptive replanning, generated-code sandbox, cross-campaign evidence retrieval, and broader graph tasks are future work. Sealed worker isolation currently supports macOS only. This release does not complete the full M1/MVP.
+The node task adapter, native real-data training beyond the dpsyn backend, context features in the native trainer, independent multi-graph confirmation, adaptive replanning, generated-code sandbox, cross-campaign evidence retrieval, and broader graph tasks are future work. Sealed worker isolation currently supports macOS only. This release does not complete the full M1/MVP.
 
 See [next milestones](docs/roadmap.md).
