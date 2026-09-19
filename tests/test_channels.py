@@ -1,8 +1,11 @@
+import importlib.util
 import unittest
 from types import SimpleNamespace
 import numpy as np
 import torch
-from dpsyn.channel_selectivity import graph_inputs,controlled_edges,fit
+HAS_DPSYN = importlib.util.find_spec("dpsyn") is not None
+if HAS_DPSYN:
+    from dpsyn.channel_selectivity import graph_inputs, controlled_edges, fit
 
 
 def dataset():
@@ -13,6 +16,7 @@ def dataset():
         e_pd=torch.tensor([[0,1,2,3,0,1],[0,1,2,3,4,5]]),e_pp=torch.tensor([[0,1,1,2,2,3],[1,0,2,1,3,2]]))
 
 
+@unittest.skipUnless(HAS_DPSYN, "Requires the dpsyn backend checkout")
 class ChannelTests(unittest.TestCase):
     def test_heldout_labels_cannot_change_dd_edges(self):
         ds=dataset();a=graph_inputs(ds,np.arange(4),seed=0)

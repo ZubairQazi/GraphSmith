@@ -314,3 +314,18 @@ Analysis entry points and protocol are in the analysis repository:
 `scripts/run_graphsmith_channels.sh`,
 `scripts/analysis/report_graphsmith_channels.py`, and
 `notes/graphsmith-channel-selectivity.md`.
+
+## Backend integration tests
+
+Standalone GraphSmith CI runs without the separate `dpsyn` training checkout.
+Tests that require that backend are explicitly skipped when `dpsyn` is absent;
+GraphSmith-only selectivity checks still run. Backend import errors propagate
+when the package is present, so missing backend dependencies are not hidden.
+
+To include backend integration checks, use an environment with the training
+dependencies installed and expose both checkouts:
+
+```bash
+PYTHONPATH="/path/to/Multigraph-GNN-Training:/path/to/GraphSmith" \
+  python -m unittest discover -s tests -v
+```

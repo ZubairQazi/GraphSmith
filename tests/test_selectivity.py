@@ -1,11 +1,15 @@
+import importlib.util
 import unittest
 import numpy as np
-from dpsyn.selectivity import standardize, fit, ranking_samples
 from graphsmith.dpsyn_selectivity import expanded_assignment, selective_probability, expected_recall
-from dpsyn.splits import split_B3
+HAS_DPSYN = importlib.util.find_spec("dpsyn") is not None
+if HAS_DPSYN:
+    from dpsyn.selectivity import standardize, fit, ranking_samples
+    from dpsyn.splits import split_B3
 
 
 class SelectivityTests(unittest.TestCase):
+    @unittest.skipUnless(HAS_DPSYN, "Requires the dpsyn backend checkout")
     def test_expansion_preserves_original_drug_split_and_groups_pairs(self):
         a = np.array([0, 1, 2, 3, 4, 5, 6, 7]); b = np.roll(a, 1)
         for seed in range(3):
@@ -18,6 +22,7 @@ class SelectivityTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             expanded_assignment(a, np.array([0]), np.array([99]), 0, 0)
 
+    @unittest.skipUnless(HAS_DPSYN, "Requires the dpsyn backend checkout")
     def test_scaling_does_not_fit_heldout_entities(self):
         x = np.array([[1,2],[3,2],[100,100]])
         z = standardize(x, np.array([0,1]))
@@ -36,6 +41,7 @@ class SelectivityTests(unittest.TestCase):
         self.assertEqual(expected_recall([1,0,0], [3,2,1], 1), 1)
         self.assertIsNone(expected_recall([0,0], [1,1], 1))
 
+    @unittest.skipUnless(HAS_DPSYN, "Requires the dpsyn backend checkout")
     def test_ranking_samples_share_pair_and_opposite_labels(self):
         rows = np.array([[0,1,0],[0,1,1],[2,3,0],[2,3,1]])
         groups = ranking_samples(rows, np.array([1,0,0,0]))
@@ -43,6 +49,7 @@ class SelectivityTests(unittest.TestCase):
         np.testing.assert_array_equal(groups[0][0],[0])
         np.testing.assert_array_equal(groups[0][1],[1])
 
+    @unittest.skipUnless(HAS_DPSYN, "Requires the dpsyn backend checkout")
     def test_fitted_predictor_is_symmetric_under_drug_pair_exchange(self):
         # A complete tiny CPU fit consumes only explicit train/validation arrays.
         rng = np.random.RandomState(9)
